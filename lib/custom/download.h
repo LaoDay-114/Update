@@ -4,4 +4,6 @@
 
 int StartDownload(const char *url);
 
+char* get_filename_from_url(const char *url);
+
 #endif
