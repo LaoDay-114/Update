@@ -9,7 +9,7 @@ def StartUpdateSession(CheckTime: int = 5, Version: str = None):
     print(f"PythonUse {Version}")
     check_seconds = CheckTime * 60
     with open('version.txt', 'r') as f:
-        version = f.read()
+        Version = f.read()
 
     print("[1/5] Check Update")
     try:
@@ -71,4 +71,7 @@ def InstallUpdatePack(filename: str = "last.updatepack"):
     except Exception as e:
         print(f"Install failed, skip")
         print(e)
+def StartUpdateSessionA(Version: str = None):
+    while True:
+        StartUpdateSession()
         
