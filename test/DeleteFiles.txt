@@ -1,6 +1,0 @@
-<<<<<<< HEAD
-7891vip.txt
-=======
-7891vip.txt
->>>>>>> dd07cfc2d06ed8aac29d5201a7276a2187de2a5f
-help_dir
