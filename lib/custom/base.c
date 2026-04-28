@@ -1,11 +1,11 @@
 #include "base.h"
 #include <stdio.h>
 
-int UpdateVersion = 101;
+int UpdateVersion = 110;
 
 int StartMessage()
 {
-    printf("Update For CRT Clang | Version 1.0.1\n\n");
+    printf("Update For CRT Clang | Version 1.1.0\n\n");
     return 0;
 }
 /*
