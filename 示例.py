@@ -1,0 +1,3 @@
+import PythonUse
+
+PythonUse.StartUpdateSession()
