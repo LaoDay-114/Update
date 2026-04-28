@@ -223,49 +223,181 @@ int unzip(char *Pack, char *ToPath)
     return 0;
 }
 
+/*复制单个文件*/
+BOOL CopyFileWithAPI(const char *src, const char *dst)
+{
+    HANDLE hSrc = CreateFileA(src, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hSrc == INVALID_HANDLE_VALUE) {
+        printf("Error opening source file: %s\n", src);
+        return FALSE;
+    }
+
+    HANDLE hDst = CreateFileA(dst, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hDst == INVALID_HANDLE_VALUE) {
+        printf("Error creating destination file: %s\n", dst);
+        CloseHandle(hSrc);
+        return FALSE;
+    }
+
+    char buffer[8192];
+    DWORD bytesRead, bytesWritten;
+    BOOL success = TRUE;
+
+    while (ReadFile(hSrc, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
+        if (!WriteFile(hDst, buffer, bytesRead, &bytesWritten, NULL) || bytesWritten != bytesRead) {
+            printf("Error writing file: %s\n", dst);
+            success = FALSE;
+            break;
+        }
+    }
+
+    CloseHandle(hSrc);
+    CloseHandle(hDst);
+    return success;
+}
+
+/*复制目录（递归）*/
+BOOL CopyDirectoryWithAPI(const char *srcDir, const char *dstDir)
+{
+    /*创建目标目录*/
+    if (!CreateDirectoryA(dstDir, NULL) && GetLastError() != ERROR_ALREADY_EXISTS) {
+        printf("Error creating directory: %s\n", dstDir);
+        return FALSE;
+    }
+
+    char searchPath[MAX_PATH];
+    snprintf(searchPath, sizeof(searchPath), "%s\\*", srcDir);
+
+    WIN32_FIND_DATAA findData;
+    HANDLE hFind = FindFirstFileA(searchPath, &findData);
+    if (hFind == INVALID_HANDLE_VALUE) {
+        printf("Error searching directory: %s\n", srcDir);
+        return FALSE;
+    }
+
+    BOOL success = TRUE;
+    do {
+        if (strcmp(findData.cFileName, ".") == 0 || strcmp(findData.cFileName, "..") == 0) {
+            continue;
+        }
+
+        char srcPath[MAX_PATH];
+        char dstPath[MAX_PATH];
+        snprintf(srcPath, sizeof(srcPath), "%s\\%s", srcDir, findData.cFileName);
+        snprintf(dstPath, sizeof(dstPath), "%s\\%s", dstDir, findData.cFileName);
+
+        if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            /*递归复制子目录*/
+            if (!CopyDirectoryWithAPI(srcPath, dstPath)) {
+                success = FALSE;
+                break;
+            }
+        } else {
+            /*复制文件*/
+            if (!CopyFileWithAPI(srcPath, dstPath)) {
+                success = FALSE;
+                break;
+            }
+            printf("Copied: %s\n", dstPath);
+        }
+    } while (FindNextFileA(hFind, &findData));
+
+    FindClose(hFind);
+    return success;
+}
+
 int CopyFS(char *Path1, char *Path2)
 {
-    /*复制指定的文件*/
-    char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "xcopy \"%s\" \"%s\" /E /I /Y", Path1, Path2);
+    /*复制指定的文件或目录*/
     puts("Copying new files...");
-    return system(cmd);
+
+    /*检查源路径是否存在*/
+    DWORD attr = GetFileAttributesA(Path1);
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        printf("Source path not found: %s\n", Path1);
+        return 1;
+    }
+
+    if (attr & FILE_ATTRIBUTE_DIRECTORY) {
+        /*复制目录*/
+        return CopyDirectoryWithAPI(Path1, Path2) ? 0 : 1;
+    } else {
+        /*复制单个文件*/
+        return CopyFileWithAPI(Path1, Path2) ? 0 : 1;
+    }
+}
+
+/*删除目录（递归）*/
+BOOL DeleteDirectoryWithAPI(const char *dirPath)
+{
+    char searchPath[MAX_PATH];
+    snprintf(searchPath, sizeof(searchPath), "%s\\*", dirPath);
+
+    WIN32_FIND_DATAA findData;
+    HANDLE hFind = FindFirstFileA(searchPath, &findData);
+    if (hFind == INVALID_HANDLE_VALUE) {
+        /*目录可能已经为空或不存在*/
+        return TRUE;
+    }
+
+    BOOL success = TRUE;
+    do {
+        if (strcmp(findData.cFileName, ".") == 0 || strcmp(findData.cFileName, "..") == 0) {
+            continue;
+        }
+
+        char fullPath[MAX_PATH];
+        snprintf(fullPath, sizeof(fullPath), "%s\\%s", dirPath, findData.cFileName);
+
+        if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            /*递归删除子目录*/
+            if (!DeleteDirectoryWithAPI(fullPath)) {
+                success = FALSE;
+                break;
+            }
+        } else {
+            /*删除文件*/
+            if (!DeleteFileA(fullPath)) {
+                printf("Error deleting file: %s\n", fullPath);
+                success = FALSE;
+                break;
+            }
+            printf("Deleted file: %s\n", fullPath);
+        }
+    } while (FindNextFileA(hFind, &findData));
+
+    FindClose(hFind);
+
+    /*删除空目录*/
+    if (success && !RemoveDirectoryA(dirPath)) {
+        printf("Error deleting directory: %s\n", dirPath);
+        success = FALSE;
+    } else if (success) {
+        printf("Deleted directory: %s\n", dirPath);
+    }
+
+    return success;
 }
 
 int DeleteFS(char *Path)
 {
     /*删除指定的文件或目录*/
-    char cmd[1024];
+    printf("Deleting: %s\n", Path);
+    fflush(stdout);
     
     /*检查路径是否存在*/
-    if (_access(Path, 0) == -1) {
+    DWORD attr = GetFileAttributesA(Path);
+    if (attr == INVALID_FILE_ATTRIBUTES) {
         printf("Path not found: %s\n", Path);
         return 0;
     }
     
-    /*检查是文件还是目录*/
-    DWORD attr = GetFileAttributesA(Path);
-    if (attr == INVALID_FILE_ATTRIBUTES) {
-        printf("Error getting attributes: %s\n", Path);
-        return 1;
-    }
-    
     if (attr & FILE_ATTRIBUTE_DIRECTORY) {
-        /*是目录*/
-        snprintf(cmd, sizeof(cmd), "rmdir /S /Q \"%s\"", Path);
-        int result = system(cmd);
-        if (result == 0) {
-            printf("Deleted directory: %s\n", Path);
-            return 0;
-        } else {
-            printf("Failed to delete directory: %s\n", Path);
-            return 1;
-        }
+        /*是目录，递归删除*/
+        return DeleteDirectoryWithAPI(Path) ? 0 : 1;
     } else {
-        /*是文件*/
-        snprintf(cmd, sizeof(cmd), "del /F /Q \"%s\"", Path);
-        int result = system(cmd);
-        if (result == 0) {
+        /*是文件，直接删除*/
+        if (DeleteFileA(Path)) {
             printf("Deleted file: %s\n", Path);
             return 0;
         } else {
