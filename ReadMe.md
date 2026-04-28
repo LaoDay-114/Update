@@ -23,7 +23,7 @@
 
 ### 1.How to Download it?
 - Download To Release.
-- Download Tag v1_GetToolMain's Assets.
+- Download Tag v1_GetToolMain's Assets or Download Update Plus Assets.
 
 ### 2.How to use it?
 Use commands:
