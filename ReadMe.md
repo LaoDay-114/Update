@@ -12,4 +12,23 @@
 > [!NOTE]
 > 该分支为Python提供了Update接口
 
-目前啥都没有捏~
+## Use it.
+
+- Clone the repository
+- Import the PythonUse module
+
+## Functions
+```python
+def StartUpdateSession(CheckTime: int = 5, Version: str = None):
+    ...
+def GetVersion() -> str:
+    ...
+def SetVersion(version: str):
+    ...
+def GetUpdatePack(url: str, filename: str = "last.updatepack"):
+    ...
+def InstallUpdatePack(filename: str = "last.updatepack"):
+    ...
+```
+---
+# End
