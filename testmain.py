@@ -1,5 +1,0 @@
-import PythonUse
-
-PythonUse.StartUpdateSession()
-
-
