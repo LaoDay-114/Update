@@ -10,7 +10,7 @@
 ![Windows](https://img.shields.io/badge/Platform-Windows_x64-%2300A4EF?style=flat&logo=windows)
 ![Clang](https://img.shields.io/badge/Build-Clang-%23222222?style=flat&logo=llvm)
 
-> [!INFO]
+> [!NOTE]
 > 本工具是 LaoDay-114/Update 的分支，用于获取更新包
 
 ## Contents
