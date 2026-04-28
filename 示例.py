@@ -1,3 +1,3 @@
 import PythonUse
 
-PythonUse.StartUpdateSession()
+PythonUse.StartUpdateSessionA()
